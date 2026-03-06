@@ -29,26 +29,30 @@ function updateMyCustomItems() {
       "SortCondition": "ASC"
     };
 
+
     try {
       const data = loaPostFetch("/markets/items", payload);
 
       if (data && data.Items && data.Items.length > 0) {
         // 검색 결과 중 이름이 정확히 일치하는 것 찾기
         const exactItem = data.Items.find(i => i.Name === cleanName) || data.Items[0];
-        results.push([
-          exactItem.RecentPrice, 
-          exactItem.CurrentMinPrice, 
-          now
-        ]);
+
+          results.push([
+            exactItem.RecentPrice,
+            exactItem.CurrentMinPrice,
+            now
+          ]);
       } else {
         results.push(["결과 없음", "-", now]);
       }
     } catch (e) {
+      Logger.log(`아이템 ${cleanName} 처리 중 오류 발생: ${e}`);
       results.push(["에러 발생", "-", now]);
     }
 
     Utilities.sleep(500); // 분당 100회 제한이므로 0.5초 간격 유지
   });
+
 
   if (results.length > 0) {
     sheet.getRange(2, 2, results.length, 3).setValues(results);
