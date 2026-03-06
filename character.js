@@ -22,7 +22,7 @@ function processAllTargetSheets() {
     // "골드표", "레벨별" 등 if문에 없는 시트들은 아무 작업도 하지 않고 자연스럽게 다음 시트로 넘어갑니다.
   }
 }
-// github연동 테스트
+
 function writeCharacterList() {
   const sheetName = "원정대";
   const ss = SpreadsheetApp.getActive();
