@@ -1,5 +1,6 @@
 // 🎯 1. 모든 시트를 순회하며 작업을 지시하는 메인 함수
 function processAllTargetSheets() {
+  Logger.log("GitHub Actions 배포 테스트 성공! " + new Date()); // 테스트용 로그 추가
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const allSheets = ss.getSheets(); // 파일에 있는 모든 시트를 배열로 가져옵니다.
 
@@ -22,7 +23,8 @@ function processAllTargetSheets() {
     // "골드표", "레벨별" 등 if문에 없는 시트들은 아무 작업도 하지 않고 자연스럽게 다음 시트로 넘어갑니다.
   }
 }
-// github연동 테스트
+
+// github연동 테스트 추가
 function writeCharacterList() {
   const sheetName = "원정대";
   const ss = SpreadsheetApp.getActive();
