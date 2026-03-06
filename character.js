@@ -120,7 +120,7 @@ function updateSingleCharacter(currentSheet) {
 
   // 💡 참고: 해당 시트에도 보상 계산이 필요하다면 아래 함수를 켜주세요.
   // 단, updateExpeditionRewards 함수가 "원정대" 시트 전용으로 짜여져 있다면 
-  // 수정이 필요할 수 있습니다.
+  // 수정이 필요할 수 있습니다. (현재 updateSingleCharacterRewards는 8개 열 처리 로직 포함)
   updateSingleCharacterRewards(currentSheet);
 }
 
@@ -168,4 +168,167 @@ function updateSingleCharacter8(currentSheet) {
   // 보상 갱신 함수인 updateSingleCharacterRewards 내부에도 
   // 8개 열을 처리할 수 있도록 수정이 필요할 수 있습니다.
   updateSingleCharacterRewards8(currentSheet);
+}
+
+function updateExpeditionRewards() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const expedition = ss.getSheetByName("원정대");
+  const levelSheet = ss.getSheetByName("레벨별");
+
+  const levelData = levelSheet.getDataRange().getValues();
+
+  const START_ROW = 5;
+  const ROW_STEP = 5;
+  const START_COL = 2; // B
+  const COL_STEP = 3;
+  const COL_COUNT = 6; // B,E,H,K,N,Q
+
+  const lastRow = expedition.getLastRow();
+
+  // 🔹 레벨 블록 인덱스 미리 수집
+  const blocks = [];
+  for (let i = 1; i < levelData.length; i++) {
+    const lv = levelData[i][1];
+    if (typeof lv === "number") {
+      blocks.push({ level: lv, row: i });
+    }
+  }
+
+  for (let row = START_ROW; row <= lastRow; row += ROW_STEP) {
+    for (let i = 0; i < COL_COUNT; i++) {
+      const col = START_COL + i * COL_STEP;
+      const charLevel = expedition.getRange(row, col).getValue();
+      if (!charLevel) continue;
+
+      // 🔹 해당 레벨 블록 찾기
+      let blockIndex = -1;
+      for (let b = 0; b < blocks.length; b++) {
+        const cur = blocks[b].level;
+        const next = blocks[b + 1]?.level ?? Infinity;
+        if (cur <= charLevel && charLevel < next) {
+          blockIndex = b;
+          break;
+        }
+      }
+      if (blockIndex === -1) continue;
+
+      const start = blocks[blockIndex].row;
+      const end =
+        blocks[blockIndex + 1]?.row ?? levelData.length;
+
+      // 🔹 유효 컨텐츠 최대 3개 수집
+      const results = [];
+      for (let r = start; r < end; r++) {
+        const content = levelData[r][2];
+        const total = levelData[r][7];
+        if (content && total) {
+          results.push([content, total]);
+          if (results.length === 3) break;
+        }
+      }
+
+      // 🔹 출력
+      for (let k = 0; k < 3; k++) {
+        expedition
+          .getRange(row + 1 + k, col, 1, 2)
+          .setValues([results[k] ?? ["", ""]]);
+      }
+    }
+  }
+}
+
+function clearAllCheckboxes() {
+  const sheetName = "원정대";
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) throw new Error("시트 '원정대' 없음");
+
+  const range = sheet.getDataRange();
+  const validations = range.getDataValidations();
+
+  for (let r = 0; r < validations.length; r++) {
+    for (let c = 0; c < validations[r].length; c++) {
+      const rule = validations[r][c];
+      if (rule && rule.getCriteriaType() === SpreadsheetApp.DataValidationCriteria.CHECKBOX) {
+        sheet.getRange(r + 1, c + 1).setValue(false);
+      }
+    }
+  }
+}
+
+function updateSingleCharacterRewards(currentSheet) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const levelSheet = ss.getSheetByName("레벨별");
+
+  if (!levelSheet) {
+    Logger.log("[에러] '레벨별' 시트를 찾을 수 없습니다.");
+    return;
+  }
+
+  const levelData = levelSheet.getDataRange().getValues();
+
+  // 🔹 레벨 블록 인덱스 미리 수집
+  const blocks = [];
+  for (let i = 1; i < levelData.length; i++) {
+    const lv = levelData[i][1]; 
+    if (typeof lv === "number") {
+      blocks.push({ level: lv, row: i });
+    }
+  }
+
+  const levelRow = 7; 
+  const outputStartRow = 9; 
+
+  // 🔹 기본은 6명(Q열까지), T열(20)이나 W열(23)에 레벨 값이 있으면 8명까지 확장
+  let outputCols = [2, 5, 8, 11, 14, 17]; // B, E, H, K, N, Q
+  
+  const valT = currentSheet.getRange(levelRow, 20).getValue();
+  const valW = currentSheet.getRange(levelRow, 23).getValue();
+
+  if (valT || valW) {
+    outputCols.push(20, 23); // 값이 있다면 T, W열 추가
+  }
+
+  // 🔹 결정된 열 리스트를 순회하며 보상 갱신
+  for (let i = 0; i < outputCols.length; i++) {
+    const col = outputCols[i];
+    const charLevel = currentSheet.getRange(levelRow, col).getValue();
+
+    if (!charLevel || typeof charLevel !== "number") {
+      currentSheet.getRange(outputStartRow, col, 3, 2).clearContent();
+      continue;
+    }
+
+    let blockIndex = -1;
+    for (let b = 0; b < blocks.length; b++) {
+      const cur = blocks[b].level;
+      const next = blocks[b + 1]?.level ?? Infinity;
+      if (cur <= charLevel && charLevel < next) {
+        blockIndex = b;
+        break;
+      }
+    }
+
+    const results = [];
+    if (blockIndex !== -1) {
+      const start = blocks[blockIndex].row;
+      const end = blocks[blockIndex + 1]?.row ?? levelData.length;
+
+      for (let r = start; r < end; r++) {
+        const content = levelData[r][2]; 
+        const total = levelData[r][7];   
+        
+        if (content && total) {
+          results.push([content, total]);
+          if (results.length === 3) break;
+        }
+      }
+    }
+
+    currentSheet.getRange(outputStartRow, col, 3, 2).clearContent();
+
+    for (let k = 0; k < 3; k++) {
+      const outputData = results[k] ?? ["", ""];
+      currentSheet.getRange(outputStartRow + k, col, 1, 2).setValues([outputData]);
+    }
+  }
 }
