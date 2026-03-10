@@ -9,7 +9,7 @@ function processAllTargetSheets() {
     const sheetName = currentSheet.getName();
 
     // 시트 이름에 따라 알맞은 함수로 분기합니다.
-    if (sheetName === "골드별" || sheetName === "원정대" || sheetName === "골드표" ) {
+    if (sheetName === "골드별" || sheetName === "원정대" || sheetName === "골드표" || "거래소") {
         continue;
     } 
     else if (sheetName === "갱먀") {
