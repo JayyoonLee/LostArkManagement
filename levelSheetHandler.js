@@ -27,8 +27,10 @@ function handleLevelEdit(e) {
     const baseName = r[0]
       .replace(" 노말", "")
       .replace(" 하드", "")
-      .replace(" 나이트메어", "");
-
+      .replace(" 나이트메어", "")
+      .replace(" 1단계", "")
+      .replace(" 2단계", "")
+      .replace(" 3단계", "");
     if (!raidMap[baseName] || raidMap[baseName][5] < r[5]) {
       raidMap[baseName] = r;
     }
